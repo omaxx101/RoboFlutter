@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'manual.dart';
 import 'auto.dart';
 import 'settings.dart';
+import 'robot.dart';
 
 const red = Colors.red;
 const black = Colors.black;
 const white = Colors.white;
 const green = Colors.green;
-
 
 void main() {
   runApp(const MainApp());
@@ -41,9 +41,31 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _currentIndex = 0;
-  String robotUrl = ""; // ✅ SINGLE SOURCE OF TRUTH
+
+  // ⭐ GLOBAL ROBOT LIST
+  final List<Robot> robots = [];
 
   String get title => ["Home", "Manual", "Auto", "Settings"][_currentIndex];
+
+  // ⭐ ADD ROBOT
+  void addRobot(Robot robot) {
+    setState(() {
+      robots.add(robot);
+      _currentIndex = 1;
+    });
+  }
+
+  // ⭐ REMOVE ROBOT (DISCONNECT)
+  void removeRobot(Robot robot) {
+    setState(() {
+      robots.remove(robot);
+
+      // if no robots left, go to settings
+      if (robots.isEmpty) {
+        _currentIndex = 3;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,15 +78,15 @@ class _MainPageState extends State<MainPage> {
           HomeTab(
             onStartPressed: () => setState(() => _currentIndex = 3),
           ),
-          ManualTab(robotUrl: robotUrl),
-          AutoTab(),
+
+          ManualTab(robots: robots),
+
+          AutoTab(robots: robots),
+
           SettingsTab(
-            onConnected: (url) {
-              setState(() {
-                robotUrl = url;
-                _currentIndex = 1;
-              });
-            },
+            robots: robots,
+            onRobotAdded: addRobot,
+            onRobotRemoved: removeRobot, // ⭐ REQUIRED
           ),
         ],
       ),
@@ -89,6 +111,7 @@ class _MainPageState extends State<MainPage> {
 // ---------------- HOME TAB ----------------
 class HomeTab extends StatelessWidget {
   final VoidCallback onStartPressed;
+
   const HomeTab({super.key, required this.onStartPressed});
 
   @override
@@ -96,13 +119,13 @@ class HomeTab extends StatelessWidget {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Text(
-          "Robot Car Control",
+          "Robot Swarm Control",
           style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: onStartPressed,
-          child: const Text("Start"),
+          child: const Text("Connect Robots"),
         ),
       ]),
     );
