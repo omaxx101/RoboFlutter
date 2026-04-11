@@ -4,13 +4,11 @@ import 'robot.dart';
 
 class SettingsTab extends StatefulWidget {
   final Function(Robot) onRobotAdded;
-  final Function(Robot) onRobotRemoved;   // ⭐ NEW
   final List<Robot> robots;
 
   const SettingsTab({
     super.key,
     required this.onRobotAdded,
-    required this.onRobotRemoved,
     required this.robots,
   });
 
@@ -24,14 +22,28 @@ class _SettingsTabState extends State<SettingsTab> {
 
   Future<void> connect() async {
     final url = "http://${ipCtrl.text}";
+
     try {
       final res = await http
           .get(Uri.parse("$url/status"))
           .timeout(const Duration(seconds: 3));
 
       if (res.statusCode == 200) {
-        widget.onRobotAdded(Robot(url: url, status: res.body));
-        setState(() => status = "Connected!");
+        final existing = widget.robots
+            .where((r) => r.url == url)
+            .toList();
+
+        if (existing.isNotEmpty) {
+          // reconnect existing robot
+          existing.first.online = true;
+          existing.first.status = res.body;
+        } else {
+          widget.onRobotAdded(
+            Robot(url: url, status: res.body, online: true),
+          );
+        }
+
+        setState(() => status = "Connected to $url");
         ipCtrl.clear();
       } else {
         setState(() => status = "Bad response");
@@ -43,69 +55,108 @@ class _SettingsTabState extends State<SettingsTab> {
 
   Future<void> disconnect(Robot robot) async {
     try {
-      // tell robot to stop before disconnecting
-      await http.get(Uri.parse("${robot.url}/s"))
+      await http
+          .get(Uri.parse("${robot.url}/s"))
           .timeout(const Duration(seconds: 1));
     } catch (_) {}
 
-    widget.onRobotRemoved(robot);
+    setState(() {
+      robot.online = false;
+      robot.status = "Disconnected";
+      status = "Disconnected ${robot.url}";
+    });
+  }
 
-    setState(() => status = "Disconnected ${robot.url}");
+  Future<void> reconnect(Robot robot) async {
+    try {
+      final res = await http
+          .get(Uri.parse("${robot.url}/status"))
+          .timeout(const Duration(seconds: 3));
+
+      if (res.statusCode == 200) {
+        setState(() {
+          robot.online = true;
+          robot.status = res.body;
+          status = "Reconnected ${robot.url}";
+        });
+      }
+    } catch (_) {
+      setState(() => status = "Reconnect failed");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Column(children: [
-        Text(status),
-        const SizedBox(height: 10),
+      child: Column(
+        children: [
+          Text(status),
+          const SizedBox(height: 10),
 
-        TextField(
-          controller: ipCtrl,
-          decoration: const InputDecoration(labelText: "Robot IP"),
-        ),
-
-        const SizedBox(height: 10),
-
-        ElevatedButton(onPressed: connect, child: const Text("Connect")),
-
-        const Divider(height: 40),
-
-        Text("Connected Robots: ${widget.robots.length}",
-            style: const TextStyle(fontSize: 18)),
-
-        const SizedBox(height: 10),
-
-        Expanded(
-          child: ListView.builder(
-            itemCount: widget.robots.length,
-            itemBuilder: (_, i) {
-              final r = widget.robots[i];
-              return Card(
-                color: Colors.black54,
-                child: ListTile(
-                  title: Text(r.url),
-                  subtitle: Text("Status: ${r.status}"),
-                  leading: Icon(
-                    r.online ? Icons.check_circle : Icons.error,
-                    color: r.online ? Colors.green : Colors.red,
-                  ),
-
-                  // ⭐ REAL DISCONNECT BUTTON
-                  trailing: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                    onPressed: () => disconnect(r),
-                    child: const Text("Disconnect"),
-                  ),
-                ),
-              );
-            },
+          TextField(
+            controller: ipCtrl,
+            decoration: const InputDecoration(
+              labelText: "Robot IP",
+            ),
           ),
-        ),
-      ]),
+
+          const SizedBox(height: 10),
+
+          ElevatedButton(
+            onPressed: connect,
+            child: const Text("Connect"),
+          ),
+
+          const Divider(height: 40),
+
+          Text(
+            "Robots Saved: ${widget.robots.length}",
+            style: const TextStyle(fontSize: 18),
+          ),
+
+          const SizedBox(height: 10),
+
+          Expanded(
+            child: ListView.builder(
+              itemCount: widget.robots.length,
+              itemBuilder: (_, i) {
+                final r = widget.robots[i];
+
+                return Card(
+                  color: Colors.black54,
+                  child: ListTile(
+                    title: Text(r.url),
+                    subtitle: Text("Status: ${r.status}"),
+                    leading: Icon(
+                      r.online
+                          ? Icons.check_circle
+                          : Icons.cancel,
+                      color:
+                          r.online ? Colors.green : Colors.red,
+                    ),
+                    trailing: r.online
+                        ? ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            onPressed: () => disconnect(r),
+                            child: const Text("Disconnect"),
+                          )
+                        : ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            onPressed: () => reconnect(r),
+                            child: const Text("Reconnect"),
+                          ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

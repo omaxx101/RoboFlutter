@@ -42,28 +42,19 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _currentIndex = 0;
 
-  // ⭐ GLOBAL ROBOT LIST
   final List<Robot> robots = [];
 
   String get title => ["Home", "Manual", "Auto", "Settings"][_currentIndex];
 
-  // ⭐ ADD ROBOT
   void addRobot(Robot robot) {
     setState(() {
       robots.add(robot);
-      _currentIndex = 1;
     });
   }
 
-  // ⭐ REMOVE ROBOT (DISCONNECT)
   void removeRobot(Robot robot) {
     setState(() {
       robots.remove(robot);
-
-      // if no robots left, go to settings
-      if (robots.isEmpty) {
-        _currentIndex = 3;
-      }
     });
   }
 
@@ -76,7 +67,11 @@ class _MainPageState extends State<MainPage> {
         index: _currentIndex,
         children: [
           HomeTab(
-            onStartPressed: () => setState(() => _currentIndex = 3),
+            onGoToSettings: () {
+              setState(() {
+                _currentIndex = 3;
+              });
+            },
           ),
 
           ManualTab(robots: robots),
@@ -86,7 +81,6 @@ class _MainPageState extends State<MainPage> {
           SettingsTab(
             robots: robots,
             onRobotAdded: addRobot,
-            onRobotRemoved: removeRobot, // ⭐ REQUIRED
           ),
         ],
       ),
@@ -95,39 +89,118 @@ class _MainPageState extends State<MainPage> {
         currentIndex: _currentIndex,
         backgroundColor: red,
         selectedItemColor: white,
-        unselectedItemColor: white,
+        unselectedItemColor:white,
         onTap: (i) => setState(() => _currentIndex = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.gamepad), label: "Manual"),
           BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: "Auto"),
-          BottomNavigationBarItem(icon: Icon(Icons.wifi), label: "Settings"),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
         ],
       ),
     );
   }
 }
 
+//
 // ---------------- HOME TAB ----------------
-class HomeTab extends StatelessWidget {
-  final VoidCallback onStartPressed;
+//
 
-  const HomeTab({super.key, required this.onStartPressed});
+class HomeTab extends StatelessWidget {
+  final VoidCallback onGoToSettings;
+
+  const HomeTab({super.key, required this.onGoToSettings});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text(
-          "Robot Swarm Control",
-          style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: onStartPressed,
-          child: const Text("Connect Robots"),
-        ),
-      ]),
+    return Padding(
+      padding: const EdgeInsets.all(30),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            "Robot Swarm Control System",
+            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 40),
+
+          // 🔥 SIDE BY SIDE SECTIONS
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Manual Explanation
+              Expanded(
+                child: Card(
+                  color: Colors.black54,
+                  child: const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Icon(Icons.gamepad, size: 50, color: Colors.red),
+                        SizedBox(height: 15),
+                        Text(
+                          "Manual Mode",
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          "Directly control the robot in real-time. "
+                          "Send movement commands, steer direction, "
+                          "and manually operate the system.",
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 20),
+
+              // Auto Explanation
+              Expanded(
+                child: Card(
+                  color: Colors.black54,
+                  child: const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Icon(Icons.smart_toy, size: 50, color: Colors.red),
+                        SizedBox(height: 15),
+                        Text(
+                          "Autonomous Mode",
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          "Allow the robot to operate automatically. "
+                          "Run pre-programmed behaviors, swarm logic, "
+                          "and obstacle avoidance systems.",
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 40),
+
+          const Text(
+            "To connect to a robot, go to the Settings page.",
+            style: TextStyle(fontSize: 18, color: Colors.white70),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 }

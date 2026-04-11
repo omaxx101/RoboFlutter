@@ -3,5 +3,9 @@ class Robot {
   String status;
   bool online;
 
-  Robot({required this.url, this.status = "UNKNOWN", this.online = true});
+  Robot({
+    required this.url,
+    this.status = "Unknown",
+    this.online = true,
+  });
 }
